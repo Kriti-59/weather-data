@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS weather_observations (
     city TEXT NOT NULL,
     source TEXT NOT NULL,
     observation_date TEXT NOT NULL,
-    observation_timestamp TEXT NOT NULL,
     temperature_f REAL,
     high_temperature_f REAL,
     low_temperature_f REAL,
@@ -26,7 +25,7 @@ CREATE TABLE IF NOT EXISTS weather_observations (
     weather_code INTEGER,
     batch_id TEXT NOT NULL,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (city, source, observation_timestamp)
+    PRIMARY KEY (city, source, observation_date)
 );
 
 -- Details of each pipeline run

@@ -3,46 +3,53 @@ from db import get_connection, initialize_database
 
 QUALITY_CHECKS = [
     {
-        "name": "temperature_not_null",
+        "name": "high_temperature_not_null",
         "sql": """
             SELECT COUNT(*)
             FROM weather_observations
-            WHERE temperature_f IS NULL
+            WHERE high_temperature_f IS NULL
         """,
-        "failure_message": "Temperature is missing.",
+        "failure_message": "High temperature is missing.",
     },
     {
-        "name": "humidity_between_0_and_100",
+        "name": "low_temperature_not_null",
         "sql": """
             SELECT COUNT(*)
             FROM weather_observations
-            WHERE humidity_percent < 0
-               OR humidity_percent > 100
-               OR humidity_percent IS NULL
+            WHERE low_temperature_f IS NULL
         """,
-        "failure_message": "Humidity is outside valid range.",
+        "failure_message": "Low temperature is missing.",
     },
     {
-        "name": "wind_speed_not_negative",
+        "name": "low_temp_below_high_temp",
         "sql": """
             SELECT COUNT(*)
             FROM weather_observations
-            WHERE wind_speed_mph < 0
+            WHERE low_temperature_f >= high_temperature_f
         """,
-        "failure_message": "Wind speed cannot be negative.",
+        "failure_message": "Low temperature is not below high temperature.",
+    },
+    {
+        "name": "precipitation_not_negative",
+        "sql": """
+            SELECT COUNT(*)
+            FROM weather_observations
+            WHERE precipitation_inches < 0
+        """,
+        "failure_message": "Precipitation cannot be negative.",
     },
     {
         "name": "no_duplicate_observations",
         "sql": """
             SELECT COUNT(*)
             FROM (
-                SELECT city, source, observation_timestamp, COUNT(*) AS row_count
+                SELECT city, source, observation_date, COUNT(*) AS row_count
                 FROM weather_observations
-                GROUP BY city, source, observation_timestamp
+                GROUP BY city, source, observation_date
                 HAVING COUNT(*) > 1
             )
         """,
-        "failure_message": "Duplicate clean observations found.",
+        "failure_message": "Duplicate observations found.",
     },
 ]
 

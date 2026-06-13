@@ -1,7 +1,7 @@
 import argparse
 import json
 import uuid
-from datetime import datetime
+from datetime import date, datetime, UTC
 
 from db import get_connection, initialize_database
 from weather_api import fetch_weather
@@ -67,25 +67,15 @@ def insert_raw_event(connection, batch_id, city, requested_date, api_result):
 
 
 def upsert_weather_observation(connection, batch_id, city, api_payload):
-    current = api_payload["current"]
     daily = api_payload["daily"]
-
-    weather_code = int(current["weather_code"])
-    condition = describe_weather_code(weather_code)
 
     row = {
         "city": city,
         "source": SOURCE,
         "observation_date": daily["time"][0],
-        "observation_timestamp": current["time"],
-        "temperature_f": current["temperature_2m"],
         "high_temperature_f": daily["temperature_2m_max"][0],
         "low_temperature_f": daily["temperature_2m_min"][0],
-        "humidity_percent": current["relative_humidity_2m"],
-        "wind_speed_mph": current["wind_speed_10m"],
         "precipitation_inches": daily["precipitation_sum"][0],
-        "weather_condition": condition,
-        "weather_code": weather_code,
         "batch_id": batch_id,
     }
 
@@ -95,42 +85,26 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
             city,
             source,
             observation_date,
-            observation_timestamp,
-            temperature_f,
             high_temperature_f,
             low_temperature_f,
-            humidity_percent,
-            wind_speed_mph,
             precipitation_inches,
-            weather_condition,
-            weather_code,
             batch_id
         )
         VALUES (
             :city,
             :source,
             :observation_date,
-            :observation_timestamp,
-            :temperature_f,
             :high_temperature_f,
             :low_temperature_f,
-            :humidity_percent,
-            :wind_speed_mph,
             :precipitation_inches,
-            :weather_condition,
-            :weather_code,
             :batch_id
         )
-        ON CONFLICT(city, source, observation_timestamp)
+        ON CONFLICT(city, source, observation_date)
         DO UPDATE SET
             observation_date = excluded.observation_date,
-            temperature_f = excluded.temperature_f,
             high_temperature_f = excluded.high_temperature_f,
             low_temperature_f = excluded.low_temperature_f,
-            humidity_percent = excluded.humidity_percent,
-            wind_speed_mph = excluded.wind_speed_mph,
             precipitation_inches = excluded.precipitation_inches,
-            weather_condition = excluded.weather_condition,
             weather_code = excluded.weather_code,
             batch_id = excluded.batch_id,
             updated_at = CURRENT_TIMESTAMP
@@ -142,6 +116,9 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
 
 
 def run_pipeline(city, requested_date, run_type):
+    if requested_date == "today":
+        requested_date = str(date.today())
+
     initialize_database()
     batch_id = str(uuid.uuid4())
 
@@ -149,7 +126,7 @@ def run_pipeline(city, requested_date, run_type):
         try:
             insert_pipeline_run(connection, batch_id, run_type, city, requested_date)
 
-            api_result = fetch_weather(city)
+            api_result = fetch_weather(city, requested_date)
             insert_raw_event(connection, batch_id, city, requested_date, api_result)
 
             rows_loaded = upsert_weather_observation(
@@ -186,13 +163,14 @@ def run_pipeline(city, requested_date, run_type):
             raise
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--city", default="Dallas")
+    parser.add_argument("--date", default="today")
+    parser.add_argument("--run-type", default="daily")
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--city", default="Dallas")
-parser.add_argument("--date", default="today")
-parser.add_argument("--run-type", default="daily")
-args = parser.parse_args()
+    run_pipeline(args.city, args.date, args.run_type)
 
-run_pipeline(args.city, args.date, args.run_type)
-
-
+if __name__ == "__main__":
+    main()
