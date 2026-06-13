@@ -41,3 +41,14 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
     rows_loaded INTEGER DEFAULT 0,
     error_message TEXT
 );
+
+-- Data quality checks
+CREATE TABLE IF NOT EXISTS data_quality_results (
+    check_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id TEXT NOT NULL,
+    check_name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    failed_count INTEGER DEFAULT 0,
+    details TEXT,
+    checked_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
