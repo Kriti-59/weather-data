@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+#data 
+data/weather.db
+
 # C extensions
 *.so
 
