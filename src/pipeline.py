@@ -6,6 +6,8 @@ from datetime import datetime
 from db import get_connection, initialize_database
 from weather_api import fetch_weather
 from weather_codes import describe_weather_code
+from quality_checks import run_quality_checks
+
 
 SOURCE = "Open-Meteo"
 
@@ -157,6 +159,20 @@ def run_pipeline(city, requested_date, run_type):
                 api_result["payload"],
             )
 
+            connection.commit()
+
+            failures = run_quality_checks(batch_id)
+            if failures:
+                finish_pipeline_run(
+                    connection,
+                    batch_id,
+                    "FAILED",
+                    rows_loaded,
+                    "Quality checks failed: " + ", ".join(failures),
+                )
+                connection.commit()
+                return batch_id
+                
             finish_pipeline_run(connection, batch_id, "SUCCESS", rows_loaded)
             connection.commit()
 
