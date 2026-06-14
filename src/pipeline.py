@@ -11,9 +11,8 @@ from quality_checks import run_quality_checks
 
 SOURCE = "Open-Meteo"
 
-
 def utc_now_text():
-    return datetime.utcnow().isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def insert_pipeline_run(connection, batch_id, run_type, city, requested_date):
@@ -68,12 +67,23 @@ def insert_raw_event(connection, batch_id, city, requested_date, api_result):
 
 def upsert_weather_observation(connection, batch_id, city, api_payload):
     daily = api_payload["daily"]
+    observation_date = daily["time"][0]
 
     high_temp = daily["temperature_2m_max"][0]
     low_temp = daily["temperature_2m_min"][0]
 
     if high_temp is None or low_temp is None:
         print(f"Skipping — API returned null data for this date")
+        return 0
+    
+    # Skip if data already exists
+    existing = connection.execute("""
+        SELECT 1 FROM weather_observations
+        WHERE city = ? AND source = ? AND observation_date = ?
+        """, (city, SOURCE, observation_date)).fetchone()
+
+    if existing:
+        print(f"Skipping {city} {observation_date} — already exists")
         return 0
 
     row = {
@@ -150,6 +160,11 @@ def run_pipeline(city, requested_date, run_type):
             )
 
             connection.commit()
+            if rows_loaded == 0:
+                finish_pipeline_run(connection, batch_id, "SKIPPED", 0)
+                connection.commit()
+                print(f"Skipped, no new data for {city} on {requested_date}")
+                return batch_id
 
             failures = run_quality_checks(batch_id)
             if failures:
