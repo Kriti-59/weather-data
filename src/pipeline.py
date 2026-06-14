@@ -69,6 +69,13 @@ def insert_raw_event(connection, batch_id, city, requested_date, api_result):
 def upsert_weather_observation(connection, batch_id, city, api_payload):
     daily = api_payload["daily"]
 
+    high_temp = daily["temperature_2m_max"][0]
+    low_temp = daily["temperature_2m_min"][0]
+
+    if high_temp is None or low_temp is None:
+        print(f"Skipping — API returned null data for this date")
+        return 0
+
     row = {
         "city": city,
         "source": SOURCE,
