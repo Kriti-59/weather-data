@@ -7,7 +7,7 @@ An end-to-end data engineering pipeline built with Python and SQLite that ingest
 **Pipeline cadence:** On-demand or scheduled daily runs
 
 ---
-
+ 
 ## What this pipeline does
 
 Every run is assigned a unique batch ID that flows through every table; raw events,
@@ -17,9 +17,7 @@ row in the database can be traced back to the exact run that produced it.
 Raw API responses are saved exactly as received before any transformation.
 If something breaks downstream, the original data is always there to reprocess from.
 
-The curated table uses upsert logic so running the pipeline twice on the same day
-updates the existing row rather than creating a duplicate. The pipeline is safe to
-re-run at any time without corrupting the data.
+Existing data is never overwritten. If a row already exists for a city and date, the pipeline skips it instantly without hitting the API or running quality checks. Only new rows trigger validation and are written to the curated table.
 
 Every run is recorded with a start time, finish time, status, and error message.
 Failed runs are logged with the exact error so they can be investigated and re-run.
@@ -88,7 +86,7 @@ pytest tests/ -v
 | Concept | Where |
 |---|---|
 | Raw data retention | `raw_weather_events` stores original API response untouched |
-| Idempotency | Upsert logic on `(city, source, observation_date)` prevents duplicates |
+| Idempotency | Skip if data already exists, re-running a backfill never overwrites or duplicates existing rows prevents duplicates |
 | Backfill | CLI tool reprocesses any city and date range safely |
 | Data quality | Automated checks for nulls, range violations, and duplicates |
 | Schema evolution | Contract tests verify curated schema stability across API changes |
@@ -120,7 +118,7 @@ weather-data-pipeline/
 │   ├── backfill.py            # Historical reprocessing by city and date range
 │   └── export_csv.py          # Export curated tables to CSV
 ├── tests/
-│   ├── test_idempotency.py    # Proves duplicate runs do not create duplicate rows
+│   ├── test_idempotency.py    # Proves duplicate runs do not update existing data or create duplicates
 │   └── test_schema_contracts.py # Proves curated schema stays stable across API changes
 ├── docs/
 │   ├── data_contract.md       # Guaranteed fields and SLA for weather_observations
