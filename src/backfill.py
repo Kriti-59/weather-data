@@ -24,6 +24,7 @@ def main():
     for requested_date in date_range(start_date, end_date):
         print(f"Backfilling {args.city} for {requested_date}")
         run_pipeline(args.city, str(requested_date), "backfill")
+        print()
 
 
 if __name__ == "__main__":
