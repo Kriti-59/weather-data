@@ -76,9 +76,10 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
         "high_temperature_f": daily["temperature_2m_max"][0],
         "low_temperature_f": daily["temperature_2m_min"][0],
         "precipitation_inches": daily["precipitation_sum"][0],
+        "weather_code": daily["weather_code"][0],
+        "weather_condition": describe_weather_code(daily["weather_code"][0]),
         "batch_id": batch_id,
     }
-
     connection.execute(
         """
         INSERT INTO weather_observations (
@@ -88,6 +89,8 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
             high_temperature_f,
             low_temperature_f,
             precipitation_inches,
+            weather_code,
+            weather_condition,
             batch_id
         )
         VALUES (
@@ -97,6 +100,8 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
             :high_temperature_f,
             :low_temperature_f,
             :precipitation_inches,
+            :weather_code,
+            :weather_condition,
             :batch_id
         )
         ON CONFLICT(city, source, observation_date)
@@ -106,6 +111,7 @@ def upsert_weather_observation(connection, batch_id, city, api_payload):
             low_temperature_f = excluded.low_temperature_f,
             precipitation_inches = excluded.precipitation_inches,
             weather_code = excluded.weather_code,
+            weather_condition = excluded.weather_condition,
             batch_id = excluded.batch_id,
             updated_at = CURRENT_TIMESTAMP
         """,

@@ -18,7 +18,7 @@ def build_weather_url(city_name, requested_date):
     query = {
         "latitude": city["latitude"],
         "longitude": city["longitude"],
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code",
         "temperature_unit": "fahrenheit",
         "wind_speed_unit": "mph",
         "precipitation_unit": "inch",
