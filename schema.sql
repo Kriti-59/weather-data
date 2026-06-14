@@ -48,3 +48,44 @@ CREATE TABLE IF NOT EXISTS data_quality_results (
     details TEXT,
     checked_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE VIEW IF NOT EXISTS daily_weather_summary AS
+SELECT
+    city,
+    observation_date,
+    high_temperature_f,
+    low_temperature_f,
+    ROUND((high_temperature_f + low_temperature_f) / 2, 1) AS avg_temperature_f,
+    precipitation_inches,
+    weather_condition,
+    weather_code
+FROM weather_observations
+ORDER BY city, observation_date;
+
+
+CREATE VIEW IF NOT EXISTS monthly_weather_summary AS
+SELECT
+    city,
+    STRFTIME('%Y-%m', observation_date) AS year_month,
+    ROUND(AVG((high_temperature_f + low_temperature_f) / 2), 1) AS avg_temperature_f,
+    ROUND(MAX(high_temperature_f), 1) AS max_temperature_f,
+    ROUND(MIN(low_temperature_f), 1) AS min_temperature_f,
+    ROUND(SUM(precipitation_inches), 3) AS total_precipitation_inches,
+    COUNT(*) AS observation_count
+FROM weather_observations
+GROUP BY city, STRFTIME('%Y-%m', observation_date)
+ORDER BY city, year_month;
+
+
+CREATE VIEW IF NOT EXISTS city_weather_dimension AS
+SELECT
+    city,
+    COUNT(*) AS total_observations,
+    MIN(observation_date) AS first_observation_date,
+    MAX(observation_date) AS last_observation_date,
+    ROUND(AVG((high_temperature_f + low_temperature_f) / 2), 1) AS overall_avg_temperature_f,
+    ROUND(MAX(high_temperature_f), 1) AS record_high_f,
+    ROUND(MIN(low_temperature_f), 1) AS record_low_f,
+    ROUND(SUM(precipitation_inches), 3) AS total_precipitation_inches
+FROM weather_observations
+GROUP BY city;
